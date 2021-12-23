@@ -7,6 +7,7 @@
 
 import os
 import numpy as np
+from numpy.lib.type_check import real
 
 import torch
 from torchvision.utils import save_image
@@ -41,7 +42,7 @@ class Tester():
         elif opt.data_type == constant.TINY:
             self.num_samples = 50
         elif opt.data_type in [constant.CIFAR100, constant.IMAGENET]:
-            self.num_samples = 100
+            self.num_samples = 1000
         else:
             self.num_samples = 1000
         self.offset = opt.label_ratio if opt.exp_mode == constant.EXP_COMPLEXITY else opt.noise_ratio
@@ -246,8 +247,8 @@ class Tester():
             if self.opt.gan_class > -1:
                 test_classes = [self.opt.gan_class]
             else:
-                test_classes = np.arange(10) if self.opt.num_classes > 10 else np.arange(self.opt.num_classes)
-                # test_classes = np.arange(self.opt.num_classes)
+                # test_classes = np.arange(10) if self.opt.num_classes > 10 else np.arange(self.opt.num_classes)
+                test_classes = np.arange(self.opt.num_classes)
             fake_data_lst, fake_label_lst = self._load_fake_data_class(test_classes)
             scores = []
             #####TESTING########
@@ -281,12 +282,20 @@ class Tester():
         # real data
         real_dataset = self._load_real_data()
         fake_dataset = self._load_fake_data()
-        n = len(real_dataset)
-        test_size = int(n*0.8)
-        lengths = [test_size, n - test_size]
-        test_set, val_set = random_split(real_dataset, lengths)
-        # loaders
-        train_loader = self.get_loader(fake_dataset)
+        if True:
+            n = len(fake_dataset)
+            train_size = int(n*0.8)
+            lengths = [train_size, n - train_size]
+            train_set, val_set = random_split(fake_dataset, lengths)
+            test_set = real_dataset
+        else:
+            n = len(real_dataset)
+            test_size = int(n*0.8)
+            lengths = [test_size, n - test_size]
+            test_set, val_set = random_split(real_dataset, lengths)
+            train_set = fake_dataset
+        
+        train_loader = self.get_loader(train_set)
         val_loader = self.get_loader(val_set)
         test_loader = self.get_loader(test_set)
         # train classifier

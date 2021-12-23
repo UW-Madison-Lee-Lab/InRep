@@ -106,7 +106,8 @@ def train_cgan(opt, logf):
             # test_scorer = PrecisionScorer(opt)
         elif opt.eval_mode == constant.INTRA_FID:
             min_score = 1000 # min score for precision 
-            scorer = ClassFIDScorer(opt, opt.gan_class)
+            testclasses = [opt.gan_class] if opt.gan_class > -1 else [0, 3, 8]
+            scorer = ClassFIDScorer(opt, testclasses)
             test_scorer = None #PrecisionScorer(opt)
         else:
             min_score = 0 # min score for precision 
@@ -122,7 +123,7 @@ def train_cgan(opt, logf):
     if scorer is not None:
         min_score = scorer.validate(gan, logf)
         Helper.log(logf, "Score on initial point: {:.4f}".format(min_score))
-        min_score = float('inf')
+        # min_score = float('inf')
         # test_scorer.validate(gan, logf)
     
     Helper.save_images(next(opt.iterator)[0], opt.sample_dir, 'real')

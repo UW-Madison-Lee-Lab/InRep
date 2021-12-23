@@ -6,6 +6,7 @@ from models.model_ops import onehot
 from .common import (CustomConv2d, CustomEmbedding, CustomLinear,
                      ResidualBlock, OptimizedResidualBlock, CondResidualBlock, UncondResidualBlock,
                      global_pooling, init)
+from .condbatchnorm import CondBatchNorm2d, CondBatchNorm1d
 
 
 class Generator(nn.Module):
@@ -363,17 +364,20 @@ class RepGANDiscriminator(nn.Module):
                                     3,
                                     resample='down',
                                     spectral_norm=spectral_norm)
+        # self.bn1 = CondBatchNorm2d(channels, num_classes)
         self.block3 = ResidualBlock(channels,
                                     channels,
                                     3,
                                     resample=None,
                                     spectral_norm=spectral_norm)
+        # self.bn2 = CondBatchNorm2d(channels, num_classes)
         self.block4 = ResidualBlock(channels,
                                     channels,
                                     3,
                                     resample=None,
                                     spectral_norm=spectral_norm)
-        self.relu5 = nn.ReLU()
+        # self.bn3 = CondBatchNorm2d(channels, num_classes)
+        self.relu5 = nn.LeakyReLU(0.2)
         self.linear5 = CustomLinear(channels,
                                     1,
                                     bias=False,
@@ -393,24 +397,21 @@ class RepGANDiscriminator(nn.Module):
         output = input
         output = self.block1(output)
         output = self.block2(output)
+        # output = self.bn1(output, label)
         output = F.dropout(output, p=0.2, training=dropout)
         output = self.block3(output)
         output = F.dropout(output, p=0.5, training=dropout)
+        # output = self.bn2(output, label)
         output = self.block4(output)
         output = F.dropout(output, p=0.5, training=dropout)
+        # output = self.bn3(output, label)
         output = self.relu5(output)
-        out_feat = global_pooling(output, 'mean')
         output = global_pooling(output, self.pooling)
-        # embedding
-        out_dis = self.linear5(output) # quality
-        out_y = torch.sum(self.embed5(label) * output, dim=1, keepdim=True) # class 
-        # correctness
         batch_size = input.shape[0]
         encoded_labels = onehot(label, self.num_class).view(batch_size, self.num_class, 1)
         out = self.authen(output).squeeze()
         out = torch.bmm(out.view(batch_size, 1, self.num_class), encoded_labels).view(batch_size)
-        return out, out_dis + out_y
-        # return (out_dis + out_y).squeeze(), None
+        return out, None
 
 
 

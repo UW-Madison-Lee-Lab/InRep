@@ -60,9 +60,13 @@ class Classifiers(object):
             self.net = Mnistnet(self.opt.num_classes)
         elif self.opt.data_type == constant.IMAGENET:
             self.net = models.resnet152(pretrained=True).to(opt.device)
-        else:
+        elif self.opt.data_type == constant.CIFAR10:
             # self.net = ResNet18(self.opt.img_size, self.opt.img_channel, self.opt.num_classes)
             self.net = ResNet18(False, False, opt.device)
+        else: # CIFAR100
+            # self.net = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar100_resnet56", pretrained=False)
+            self.net = Lenet_32(n_channels=3, n_classes=100).to(opt.device)
+            # self.net = ResNet18(False, False, opt.device, num_classes=100)
         self.checkpoint_dir = os.path.join(self.opt.checkpoint_dir, 'cas') if checkpoint_dir is None else checkpoint_dir
         Helper.try_make_dir(self.checkpoint_dir)
         self.net = self.net.to(self.opt.device)
@@ -83,10 +87,11 @@ class Classifiers(object):
         return False
 
     def train(self, trainloader, valloader):
-        optimizer = optim.Adam(self.net.parameters(), lr=self.opt.c_lr, betas=(0.5, 0.99))
+        # optimizer = optim.Adam(self.net.parameters(), lr=self.opt.c_lr, betas=(0, 0.999))
+        optimizer = optim.SGD(self.net.parameters(), lr=1e-4, weight_decay=1e-5)
         criterionCE = nn.CrossEntropyLoss()
         elapsed_time, best_accuracy, total_steps = 0, -np.inf, len(trainloader)
-        nepochs = 50
+        nepochs = self.opt.nepochs
             
         for e in range(nepochs):
             epoch = e + 1
@@ -94,7 +99,7 @@ class Classifiers(object):
             self.net.train()
             losses, top1 = AverageMeter(), AverageMeter()
             # Learning rate
-            lr = Helper.learning_rate(self.opt.c_lr, epoch, factor=30)
+            lr = Helper.learning_rate(self.opt.c_lr, epoch, factor=60)
             Helper.update_lr(optimizer, lr)
             for batch_idx, (inputs, targets) in enumerate(trainloader):
                 cur_iter = (epoch - 1) * total_steps + batch_idx
@@ -106,12 +111,18 @@ class Classifiers(object):
                 inputs = Variable(inputs, requires_grad=True).to(self.opt.device)
                 targets = Variable(targets).long().to(self.opt.device)
                 logits = self.net(inputs)
-                loss = criterionCE(logits, targets)
+
+                alpha = 0.01
+                # l1_norm = sum(p.abs().sum() for p in model.parameters())
+                l2_norm = 0
+                for p in self.net.parameters():
+                    l2_norm += torch.norm(p)
+                loss = criterionCE(logits, targets) + alpha * l2_norm
+
                 precs = Helper.accuracy(logits, targets, topk=(1,))
                 prec1 = precs[0]
                 losses.update(loss.item(), inputs.size(0))
                 top1.update(prec1.item(), inputs.size(0))
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -141,8 +152,8 @@ class Classifiers(object):
         x = x * 0.5 + 0.5 # [0, 1]
         if self.opt.data_type == constant.IMAGENET:
             x = F.interpolate(x, size=224)
-        mean = (0.485, 0.456, 0.406)
-        std = (0.229, 0.224, 0.225)
+        mean = constant.means[self.opt.data_type]
+        std = constant.stds[self.opt.data_type]
         for c in range(3):
             x[:, c, ...] = (x[:, c, ...] - mean[c])/std[c]
         return x
@@ -155,7 +166,7 @@ class Classifiers(object):
             # print(batch_idx)
             targets = Variable(targets).long().to(self.opt.device)
             inputs = Variable(inputs).to(self.opt.device)
-            inputs = self.normalize(inputs)
+            # inputs = self.normalize(inputs)
             with torch.no_grad():
                 logits = self.net(inputs)
                 loss = criterion(logits, targets)
@@ -228,22 +239,43 @@ class Mnistnet(nn.Module):
         output = F.log_softmax(x, dim=1)
         return output
 
+# class Lenet_32(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=10):
+#         super().__init__()
+#         self.conv1 = nn.Conv2d(n_channels, 6, 5)
+#         self.conv2 = nn.Conv2d(6, 16, 5)
+#         self.fc1 = nn.Linear(16*5*5, 120)
+#         self.fc2 = nn.Linear(120, 84)
+#         self.fc3 = nn.Linear(84, n_classes)
+
+#     def forward(self, x):
+#         out = F.relu(self.conv1(x))
+#         out = F.max_pool2d(out, 2)
+#         out = F.relu(self.conv2(out))
+#         out = F.max_pool2d(out, 2)
+#         out = out.view(out.size(0), -1)
+#         out = F.relu(self.fc1(out))
+#         out = F.relu(self.fc2(out))
+#         out = self.fc3(out)
+#         return out
+
+
 class Lenet_32(nn.Module):
-    def __init__(self, n_channels=3, n_classes=10):
+    def __init__(self, n_channels=3, n_classes=100):
         super().__init__()
-        self.conv1 = nn.Conv2d(n_channels, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16*5*5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, n_classes)
+        self.conv = nn.Sequential(
+            nn.Conv2d(n_channels, 6, 5),
+            nn.ReLU(), 
+            nn.BatchNorm2d(6),
+            nn.Conv2d(6, 6, 5),
+            nn.ReLU(), 
+            nn.BatchNorm2d(6),
+            # nn.Dropout2d(0.5)
+        )
+        self.fc = nn.Linear(3456, n_classes)
 
     def forward(self, x):
-        out = F.relu(self.conv1(x))
-        out = F.max_pool2d(out, 2)
-        out = F.relu(self.conv2(out))
-        out = F.max_pool2d(out, 2)
+        out = self.conv(x)
         out = out.view(out.size(0), -1)
-        out = F.relu(self.fc1(out))
-        out = F.relu(self.fc2(out))
-        out = self.fc3(out)
+        out = self.fc(out)
         return out

@@ -100,33 +100,38 @@ class FIDScorer(BaseScorer):
 
 
 class ClassFIDScorer(BaseScorer):
-    def __init__(self, opt, target_class):
+    def __init__(self, opt, target_classes):
         BaseScorer.__init__(self, opt)
         block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
         self.inception_model = InceptionV3([block_idx]).to(opt.device)
-        self.real_path = os.path.join(opt.real_classifier_dir, 'stats_real_{}.npy'.format(target_class))
-        self.target_class = target_class
-        self.device, self.data_type, self.img_size, self.data_dir, self.num_attrs = opt.device, opt.data_type, opt.img_size, opt.data_dir, opt.num_attrs
-
-    def test(self):
-        full_dataset = DataProvider.load_dataset(self.data_type, self.img_size, self.data_dir, train=False)
-        score = FID(self.inception_model, [self.real_path, ""], [None, full_dataset], 64, self.device, 2048, True)
-        print("\n=== FID score -- All {:.4f}".format(score))
-        for c in range(self.opt.num_classes):
-            fake_dataset = DataProvider.load_class_dataset(deepcopy(full_dataset), c)
-            score = FID(self.inception_model, [self.real_path, ""], [None, fake_dataset], 64, self.device, 2048, True)
-            print("\n=== class FID score -- class {} {:.4f}".format(c, score))
+        self.target_classes = target_classes
+        self.opt = opt
+        
+    # def test(self):
+    #     full_dataset = DataProvider.load_dataset(self.data_type, self.img_size, self.data_dir, train=False)
+    #     score = FID(self.inception_model, [self.real_path, ""], [None, full_dataset], 64, self.device, 2048, True)
+    #     print("\n=== FID score -- All {:.4f}".format(score))
+    #     for c in range(self.opt.num_classes):
+    #         fake_dataset = DataProvider.load_class_dataset(deepcopy(full_dataset), c)
+    #         score = FID(self.inception_model, [self.real_path, ""], [None, fake_dataset], 64, self.device, 2048, True)
+    #         print("\n=== class FID score -- class {} {:.4f}".format(c, score))
     
     def validate(self, gan, logf):
-        if not(os.path.isfile(self.real_path)):
-            full_dataset = DataProvider.load_dataset(self.data_type, self.img_size, self.data_dir, train=False, num_attrs=self.num_attrs)
-            real_dataset = DataProvider.load_class_dataset(full_dataset, self.target_class)
-        else:
-            real_dataset = None
+        scores = []
+        full_dataset = None
+        for c in self.target_classes:
+            real_path = os.path.join(self.opt.real_classifier_dir, 'stats_real_{}.npy'.format(c))
+            if not(os.path.isfile(real_path)):
+                if full_dataset is None:
+                    full_dataset = DataProvider.load_dataset(self.opt.data_type, self.opt.img_size, self.opt.data_dir, train=False, num_attrs=self.opt.num_attrs)
+                real_dataset = DataProvider.load_class_dataset(full_dataset, c)
+            else:
+                real_dataset = None
         
-        data, labels = mix_sample_class(gan, self.num_samples, self.target_class)
-        fake_dataset = GANDataset(torch.tensor(data), torch.tensor(labels, dtype=torch.long))
-        score = FID(self.inception_model, [self.real_path, ""], [real_dataset, fake_dataset], 64, self.device, 2048, True)
-        Helper.log(logf, "\n=== Class FID score {:.4f}".format(score))
-        return score
+            data, labels = mix_sample_class(gan, self.num_samples, c)
+            fake_dataset = GANDataset(torch.tensor(data), torch.tensor(labels, dtype=torch.long))
+            score = FID(self.inception_model, [real_path, ""], [real_dataset, fake_dataset], 64, self.opt.device, 2048, True)
+            scores.append(score)
+        # Helper.log(logf, "\n=== Class FID score {:.4f}".format(score))
+        return score.mean()
 

@@ -62,6 +62,8 @@ def get_gan(opt):
         from models.gans.transfergan import TransferGAN as GAN
     elif opt.gan_type == constant.MINEGAN:
         from models.gans.minegan import MineGAN as GAN
+    elif opt.gan_type == constant.INREP:
+        from models.gans.inrep import InRep as GAN
     else:
         print('Van GAN is not implemented yet')
     # model

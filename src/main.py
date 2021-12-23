@@ -149,12 +149,16 @@ if cfgs.benchmark_mode:
 
 if cfgs.is_train:
     # Set the random seeds.
-    seed = 11111
+    # seed = 3407
+    seed = 12345
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    from train_cgan import train
+    # np.random.seed(seed)
+    if cfgs.gan_type == constant.INREP:
+        from train_inrep import train
+    else:
+        from train_cgan import train
     train(cfgs)
 else:
     # print('NetG: ', cfgs.pretrained_path)

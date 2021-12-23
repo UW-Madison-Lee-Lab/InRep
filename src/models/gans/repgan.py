@@ -37,12 +37,12 @@ class RepGAN(BaseModel):
 
         if self.is_training:
             self.model_names = ['M', 'D']
-            # self.gan_loss = GANLoss().to(self.device)
+            self.gan_loss = GANLoss().to(self.device)
             self.netD = define_D(opt).to(self.device)
             self.netD.apply(weights_init)
             # self.netD = load_pretrained_net(define_D(opt), opt.trained_netD_path, self.device)
-            self.netM.apply(weights_init_zeros) # set to be 0
-            # self.netM.apply(weights_init)
+            # self.netM.apply(weights_init_zeros) # set to be 0
+            self.netM.apply(weights_init)
             self.optimizer_G = optim.Adam(self.netM.parameters(), lr=opt.g_lr, betas=(opt.beta1, opt.beta2)) # Optimize over "theta"
             self.optimizer_D = optim.Adam(self.netD.parameters(), lr=opt.d_lr, betas=(opt.beta1, opt.beta2)) # Optimize over "w"
             def lr_lambda(iteration):
@@ -87,16 +87,23 @@ class RepGAN(BaseModel):
             loss = dis_errD_real + dis_errD_fake
         return loss
 
-    def backward_D(self, reals, fakes, labels):
+    def backward_D(self, reals, fakes, labels, hinge=True):
         dis_out_real, _ = self.netD(reals, labels) # out_quality, out_y, out_class
         dis_out_fake, _ = self.netD(fakes, labels)
-        dis_errD_real = torch.mean(F.relu(1. - dis_out_real)) 
-        dis_errD_fake = torch.mean(F.relu(1. + dis_out_fake))
-        dis_errD_real_g = torch.mean(F.relu(1. + dis_errD_real))
-        self.loss_D = self.pu_loss(dis_errD_real, dis_errD_real_g, dis_errD_fake)
+        if hinge:
+            dis_errD_real = torch.mean(F.relu(1. - dis_out_real))
+            dis_errD_fake = torch.mean(F.relu(1. + dis_out_fake))
+            dis_errD_real_g = torch.mean(F.relu(1. + dis_out_real))
+        else:
+            dis_errD_real = self.gan_loss(dis_out_real, True)
+            dis_errD_fake = self.gan_loss(dis_out_fake, False)
+            dis_errD_real_g = self.gan_loss(dis_out_real, False)
+        # self.loss_D = self.pu_loss(dis_errD_real, dis_errD_real_g, dis_errD_fake)
+        self.loss_D = loss_hinge_dis(dis_out_real, dis_out_fake)
 
     def backward_G(self, fakes, labels):
         gen_out_fake, _ = self.netD(fakes, labels)
+        # self.loss_G = self.gan_loss(gen_out_fake, True)
         self.loss_G = loss_hinge_gen(gen_out_fake)
 
     def sample(self, data_size=None, labels=None, target_class=None):
@@ -115,10 +122,12 @@ class RepGAN(BaseModel):
             y = torch.cat([self.labels] * 2, dim=0)
             # forward 
             fakes = self.forward(u, y)
+            # Helper.deactivate(self.netD)
             self.backward_G(fakes, y)                   # calculate graidents for G
             self.optimizer_G.zero_grad()        # set G's gradients to zero
             self.loss_G.backward()
             self.optimizer_G.step()             # udpate G's weights  
+            # Helper.activate(self.netD)
         for _ in range(self.d_steps_per_iter):
             reals, labels = next(self.iterator)
             reals = reals.to(self.device)

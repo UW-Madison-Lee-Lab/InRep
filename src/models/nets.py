@@ -58,11 +58,19 @@ class Modifier(nn.Module):
         return self.fc(u)
 
 
+def define_classifier(data_type):
+    netname = {
+        'cifar100': "cifar100_resnet56",
+        'cifar10' : "cifar10_resnet32"
+    }[data_type]
+    return torch.hub.load("chenyaofo/pytorch-cifar-models", netname, pretrained=True)
+    
+
 # RepGAN
 def define_M(cfgs):
     from .networks.modifer import ResNetModifier
-    if cfgs.data_type == constant.TINY:
-        nlayers = 5
+    if cfgs.data_type == constant.CIFAR100:
+        nlayers = 3
     else:
         nlayers = 3
     return ResNetModifier(nlayers, cfgs.u_dim, cfgs.z_dim, cfgs.num_classes)
@@ -98,7 +106,7 @@ def define_G(cfgs):
     if cfgs.decoder_type == constant.GAN:
         if cfgs.gan_type in [constant.PROJGAN, constant.ACGAN]: # conditional gan
             from .networks.resnet_rcgan import Generator
-        elif cfgs.gan_type in [constant.DECODER, constant.REPGAN, constant.GANREP, constant.TRANSFERGAN, constant.MINEGAN, constant.SRGAN]:
+        elif cfgs.gan_type in [constant.DECODER, constant.REPGAN, constant.GANREP, constant.TRANSFERGAN, constant.MINEGAN, constant.SRGAN, constant.INREP]:
             from .networks.resnet_rcgan import UncondGenerator as Generator
         net = Generator(channels=256, image_size=cfgs.img_size, num_classes=cfgs.num_classes)
     else:
