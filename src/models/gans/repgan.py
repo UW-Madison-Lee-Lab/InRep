@@ -98,8 +98,8 @@ class RepGAN(BaseModel):
             dis_errD_real = self.gan_loss(dis_out_real, True)
             dis_errD_fake = self.gan_loss(dis_out_fake, False)
             dis_errD_real_g = self.gan_loss(dis_out_real, False)
-        # self.loss_D = self.pu_loss(dis_errD_real, dis_errD_real_g, dis_errD_fake)
-        self.loss_D = loss_hinge_dis(dis_out_real, dis_out_fake)
+        self.loss_D = self.pu_loss(dis_errD_real, dis_errD_real_g, dis_errD_fake)
+        # self.loss_D = loss_hinge_dis(dis_out_real, dis_out_fake)
 
     def backward_G(self, fakes, labels):
         gen_out_fake, _ = self.netD(fakes, labels)

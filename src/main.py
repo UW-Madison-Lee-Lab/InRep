@@ -14,6 +14,7 @@ from utils.helper import Helper
 from utils.misc import dict2clsattr
 from evals.evaluate import Tester
 import constant
+import wandb
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -63,6 +64,8 @@ PARSER.add_argument('--nsteps_log', type=int, default=1000)
 PARSER.add_argument('--nsteps_save', type=int, default=100)
 
 # optimization
+PARSER.add_argument('--lr_g', type=float, default=2e-4)
+PARSER.add_argument('--lr_d', type=float, default=2e-4)
 PARSER.add_argument('--c_lr', type=float, default=0.001)
 PARSER.add_argument('--lr_policy', type=str, default='step', \
     help='learning rate policy: lambda|step|plateau|cosine')
@@ -79,7 +82,16 @@ PARSER.add_argument('--gpu_ids', type=str, default='0,', \
     help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
 PARSER.add_argument('--benchmark_mode', type=bool, default=True)
 
+PARSER.add_argument("--use_wandb", type=int, default=0,
+        help="Use WandDB?")
+
 MY_ARGS = PARSER.parse_args()
+
+MY_ARGS.use_wandb = MY_ARGS.use_wandb == 1
+if MY_ARGS.use_wandb:
+    wandb.init(project='InRep')
+    MY_ARGS.is_train = True
+
 # config path
 config_path = "configs/{}/{}.json".format(MY_ARGS.data_type, MY_ARGS.gan_type)
 with open(config_path) as f:
@@ -124,7 +136,6 @@ for d in ["sample", "checkpoint", "eval"]:
     train_config[d + "_dir"] = os.path.join(train_config["save_dir"], d + 's/' + suffix)
     Helper.try_make_dir(train_config[d + "_dir"])
 
-
 train_config['eval_path'] = os.path.join(train_config["eval_dir"], \
     "{}/{}_{}-{}_{}{}_{}".format(
         train_config["eval_mode"],
@@ -146,11 +157,14 @@ if cfgs.benchmark_mode:
     torch.backends.cudnn.benchmark = True
 
 # torch.multiprocessing.set_start_method('spawn')
+if cfgs.use_wandb:
+    cfgs.d_lr = cfgs.lr_d
+    cfgs.g_lr = cfgs.lr_g
 
 if cfgs.is_train:
     # Set the random seeds.
-    # seed = 3407
-    seed = 12345
+    seed = 3407
+    # seed = 12345
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)

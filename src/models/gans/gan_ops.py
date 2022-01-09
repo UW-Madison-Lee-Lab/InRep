@@ -48,6 +48,8 @@ def get_gan(opt):
             from models.gans.decoder import Decoder as GAN
     elif opt.gan_type == constant.REPGAN:
         from models.gans.repgan import RepGAN as GAN
+    elif opt.gan_type == constant.REPGAN_AB:
+        from models.gans.repgan_ab import RepGAN as GAN
     elif opt.gan_type == constant.SRGAN:
         from models.gans.srgan import SRGAN as GAN
     elif opt.gan_type == constant.GANREP:

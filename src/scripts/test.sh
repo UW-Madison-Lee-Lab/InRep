@@ -6,8 +6,8 @@
 # done
 # echo $gan
 
-data=cifar100
-test=cas
+data=cifar10
+test=gantest
 
 # python main.py -d cifar10 -e complexity -l 0.2 -g repgan --is_train -t intrafid -c 0
 # contragan, 1.0 -- networks
@@ -24,6 +24,6 @@ test=cas
 
 # sh scripts/test.sh cifar10 intrafid acgan 2>&1 | tee ../logs/cifar10_acgan_intra.txt
 
-python main.py -d $data -e complexity -l 1.0 -g minegan -t $test
-python main.py -d $data -e complexity -l 1.0 -g contragan -t $test 
-python main.py -d $data -e complexity -l 0.01 -g repgan -t $test 
+# python main.py -d $data -e complexity -l 1.0 -g minegan -t $test
+# python main.py -d $data -e complexity -l 1.0 -g contragan -t $test 
+python main.py -d $data -e complexity -l 1.0 -g repgan -t gantest

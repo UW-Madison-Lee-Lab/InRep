@@ -68,12 +68,13 @@ def define_classifier(data_type):
 
 # RepGAN
 def define_M(cfgs):
-    from .networks.modifer import ResNetModifier
-    if cfgs.data_type == constant.CIFAR100:
-        nlayers = 3
+    if cfgs.gan_type == constant.REPGAN_AB:
+        from .networks.modifer import NonInvModifier as Modifier
     else:
-        nlayers = 3
-    return ResNetModifier(nlayers, cfgs.u_dim, cfgs.z_dim, cfgs.num_classes)
+        from .networks.modifer import ResNetModifier as Modifier
+        
+    nlayers = 3
+    return Modifier(nlayers, cfgs.u_dim, cfgs.z_dim, cfgs.num_classes)
 
 
 def define_G(cfgs):
@@ -106,7 +107,7 @@ def define_G(cfgs):
     if cfgs.decoder_type == constant.GAN:
         if cfgs.gan_type in [constant.PROJGAN, constant.ACGAN]: # conditional gan
             from .networks.resnet_rcgan import Generator
-        elif cfgs.gan_type in [constant.DECODER, constant.REPGAN, constant.GANREP, constant.TRANSFERGAN, constant.MINEGAN, constant.SRGAN, constant.INREP]:
+        elif cfgs.gan_type in [constant.DECODER, constant.REPGAN, constant.REPGAN_AB, constant.GANREP, constant.TRANSFERGAN, constant.MINEGAN, constant.SRGAN, constant.INREP]:
             from .networks.resnet_rcgan import UncondGenerator as Generator
         net = Generator(channels=256, image_size=cfgs.img_size, num_classes=cfgs.num_classes)
     else:
@@ -146,7 +147,7 @@ def define_D(cfgs):
         from .networks.resnet_rcgan import ACGANDiscriminator as Discriminator
     elif cfgs.gan_type in [constant.DECODER, constant.GANREP]:
         from .networks.resnet_rcgan import UncondDiscriminator as Discriminator
-    elif cfgs.gan_type in [constant.REPGAN, constant.SRGAN]:
+    elif cfgs.gan_type in [constant.REPGAN, constant.SRGAN, constant.REPGAN_AB]:
         from .networks.resnet_rcgan import RepGANDiscriminator as Discriminator
     net = Discriminator(num_classes=cfgs.num_classes, channels=128, spectral_norm=True, pooling='sum')
    

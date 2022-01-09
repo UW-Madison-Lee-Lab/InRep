@@ -11,6 +11,7 @@ VAE = 'vae'
 #cgan
 DECODER = 'udecoder'
 REPGAN = 'repgan'
+REPGAN_AB = 'repgan_ab'
 GANREP = 'ganrep'
 TRANSFERGAN = 'transfergan'
 MINEGAN = 'minegan'

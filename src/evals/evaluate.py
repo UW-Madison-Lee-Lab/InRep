@@ -42,7 +42,7 @@ class Tester():
         elif opt.data_type == constant.TINY:
             self.num_samples = 50
         elif opt.data_type in [constant.CIFAR100, constant.IMAGENET]:
-            self.num_samples = 1000
+            self.num_samples = 100
         else:
             self.num_samples = 1000
         self.offset = opt.label_ratio if opt.exp_mode == constant.EXP_COMPLEXITY else opt.noise_ratio
@@ -85,11 +85,11 @@ class Tester():
         if self.opt.eval_mode == constant.GAN_TEST:
             print('Eval GAN-test')
             scorer = PrecisionScorer(self.opt)
-            # test_loader = self.get_loader(self._load_fake_data())
+            test_loader = self.get_loader(self._load_fake_data())
             if self.opt.data_type == constant.IMAGENET:
                 full_dataset = self._load_real_data()
                 real_dataset = DataProvider.load_class_dataset(full_dataset, self.opt.gan_class)
-            test_loader = self.get_loader(real_dataset)
+                test_loader = self.get_loader(real_dataset)
             loss, score = scorer.evaluate(test_loader)
             print('Testset -- Loss {:.4f} Accuracy: {:.4f}'.format(loss, score))
             # for both two cases
@@ -252,7 +252,7 @@ class Tester():
             fake_data_lst, fake_label_lst = self._load_fake_data_class(test_classes)
             scores = []
             #####TESTING########
-            for c in test_classes:
+            for c, _ in enumerate(test_classes):
                 real_path, fake_path = get_path(c)
                 # fake data
                 fake_dataset = GANDataset(torch.tensor(fake_data_lst[c]), torch.tensor(fake_label_lst[c], dtype=torch.long))
@@ -280,26 +280,24 @@ class Tester():
 
     def _evaluate_cas(self, lime=False):
         # real data
+        if self.opt.data_type in [constant.CIFAR100]:
+            self.num_samples = 100
+        else:
+            self.num_samples = 1000
+
         real_dataset = self._load_real_data()
         fake_dataset = self._load_fake_data()
-        if True:
-            n = len(fake_dataset)
-            train_size = int(n*0.8)
-            lengths = [train_size, n - train_size]
-            train_set, val_set = random_split(fake_dataset, lengths)
-            test_set = real_dataset
-        else:
-            n = len(real_dataset)
-            test_size = int(n*0.8)
-            lengths = [test_size, n - test_size]
-            test_set, val_set = random_split(real_dataset, lengths)
-            train_set = fake_dataset
+        n = len(real_dataset)
+        test_size = int(n*0.8)
+        lengths = [test_size, n - test_size]
+        test_set, val_set = random_split(real_dataset, lengths)
+        train_set = fake_dataset
         
         train_loader = self.get_loader(train_set)
         val_loader = self.get_loader(val_set)
         test_loader = self.get_loader(test_set)
         # train classifier
-        netC = Classifiers(self.opt)
+        netC = Classifiers(self.opt, True)
         val_accuracy = netC.train(train_loader, val_loader)
         # load the best model
         netC.load_network()

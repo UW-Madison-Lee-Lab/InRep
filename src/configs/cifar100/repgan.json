@@ -38,7 +38,7 @@
       "batch_size": 64,
       "accumulation_steps": 1,
       "d_lr": 2e-4,
-      "g_lr": 2e-3,
+      "g_lr": 2e-4,
       "momentum": "N/A",
       "nesterov": "N/A",
       "alpha": "N/A",

@@ -38,21 +38,21 @@ class PrecisionScorer(BaseScorer):
     def __init__(self, opt):
         BaseScorer.__init__(self, opt)
         self.sign = -1
-        netC = Classifiers(opt, opt.real_classifier_dir)
-        valid = netC.load_network(pretrained=True)
-        if valid:
-            print('Load classifier')
-        else:
-            print('No classifier')
-            train_set = DataProvider.load_dataset(opt.data_type, opt.img_size, opt.data_dir, train=True, num_attrs=opt.num_attrs)
-            val_set = DataProvider.load_dataset(opt.data_type, opt.img_size, opt.data_dir, train=False, num_attrs=opt.num_attrs)
-            train_loader = DataLoader(train_set, batch_size=opt.batch_size, shuffle=True)
-            val_loader = DataLoader(val_set, batch_size=opt.batch_size, shuffle=True)
-            val_accuracy = netC.train(train_loader, val_loader)
-            netC.load_network()
-            print('Eval on real data -- Accuracy: {:.4f}'.format(val_accuracy))
-        netC.net.eval()
-        self.netC = netC
+        self.netC = Classifiers(opt, False)
+        # valid = netC.load_network(pretrained=True)
+        # if valid:
+        #     print('Load classifier')
+        # else:
+        #     print('No classifier')
+        #     train_set = DataProvider.load_dataset(opt.data_type, opt.img_size, opt.data_dir, train=True, num_attrs=opt.num_attrs)
+        #     val_set = DataProvider.load_dataset(opt.data_type, opt.img_size, opt.data_dir, train=False, num_attrs=opt.num_attrs)
+        #     train_loader = DataLoader(train_set, batch_size=opt.batch_size, shuffle=True)
+        #     val_loader = DataLoader(val_set, batch_size=opt.batch_size, shuffle=True)
+        #     val_accuracy = netC.train(train_loader, val_loader)
+        #     netC.load_network()
+        #     print('Eval on real data -- Accuracy: {:.4f}'.format(val_accuracy))
+        # netC.net.eval()
+        # self.netC = netC
         self.criterion = torch.nn.CrossEntropyLoss()
         self.device = opt.device
     

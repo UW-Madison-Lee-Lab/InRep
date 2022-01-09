@@ -19,7 +19,7 @@ from models.gans.gan_ops import get_gan
 # from torch.utils.tensorboard import SummaryWriter
 import warnings
 warnings.filterwarnings("ignore")
-import wandb
+
 
 class InfDataLoader():
     def __init__(self, data_loader, **kwargs):
@@ -60,7 +60,7 @@ def print_message(logf, iteration, losses, loss_names, val_score=None):
 
 def train(opt):
     imbalance_suffix = 'skewed' if opt.imbalance else ''
-    logf = open('../logs/{}_{}{}_{}_{}_{}_{}.out'.format(opt.exp_mode, opt.data_type, imbalance_suffix, opt.gan_type, opt.gan_class, opt.phase, opt.mode), 'w')
+    logf = open('../logs/{}_{}{}_{}_{}_{}_{}_{}.out'.format(opt.exp_mode, opt.data_type, imbalance_suffix, opt.gan_type, opt.label_ratio, opt.gan_class, opt.phase, opt.mode), 'w')
     message = 'Train !!!!!\n=== Exp {}: {} labels, {} noises \n=== Data {} - {} {}\n=== GAN {} class {}'.format(
             opt.exp_mode,
             opt.label_ratio,
@@ -75,10 +75,10 @@ def train(opt):
         ugan, _ = get_gan(opt)
         ugan.train_encoder(opt.sample_dir)
     else:
-        train_cgan(opt, logf)
+        train_inrep(opt, logf)
     
 
-def train_cgan(opt, logf):
+def train_inrep(opt, logf):
     log_dir = '../results/runs/{}-{}'.format(opt.gan_type, opt.mode)     
     if os.path.isdir(log_dir):
         shutil.rmtree(log_dir)
@@ -93,41 +93,32 @@ def train_cgan(opt, logf):
     opt.num_iterations_decay = opt.nsteps
     gan, loss_names = get_gan(opt)
     
-    if opt.gan_type == constant.GANREP:
-        scorer = ClassFIDScorer(opt, opt.gan_class)
-        min_score = 1000 # min score for precision 
+    if opt.eval_mode == constant.FID:
+        min_score = 1000 # max score
+        scorer = FIDScorer(opt)
         test_scorer = None
-    else:
-        if opt.eval_mode == constant.FID:
-            min_score = 1000 # max score
-            scorer = FIDScorer(opt)
-            # scorer = ClassFIDScorer(opt, 0)
-            test_scorer = None
-            # test_scorer = PrecisionScorer(opt)
-        elif opt.eval_mode == constant.INTRA_FID:
-            min_score = 1000 # min score for precision 
-            testclasses = [opt.gan_class] if opt.gan_class > -1 else [0, 3, 8]
-            scorer = ClassFIDScorer(opt, testclasses)
-            test_scorer = None #PrecisionScorer(opt)
-        else:
-            min_score = 0 # min score for precision 
-            scorer = PrecisionScorer(opt)
-            test_scorer = FIDScorer(opt)
+    elif opt.eval_mode == constant.INTRA_FID:
+        min_score = 1000 # min score for precision 
+        scorer = ClassFIDScorer(opt, opt.gan_class)
+        test_scorer = None #PrecisionScorer(opt)
 
     best_iteration = -1
     # out = scorer.evaluate(dataloader, is_transform=False)
     # Helper.log(logf, "=== Sanity test scorer -- loss {:.4f} prec {:.4f}".format(out[0], out[1]))
-    if opt.resume > 0 and os.path.isfile(opt.checkpoint_dir + "/net_D.pth"):
+    if opt.resume > 0 and os.path.isfile(opt.checkpoint_dir + "/net_M.pth"):
         Helper.log(logf, 'Load models')
         gan.load_networks()
     if scorer is not None:
         min_score = scorer.validate(gan, logf)
         Helper.log(logf, "Score on initial point: {:.4f}".format(min_score))
-        # min_score = float('inf')
+        min_score = float('inf')
         # test_scorer.validate(gan, logf)
     
     Helper.save_images(next(opt.iterator)[0], opt.sample_dir, 'real')
     Helper.log(logf, 'Total-step:' + str(opt.nsteps) + ' Batch: ' + str(opt.batch_size))
+    loss_names = ['classifier', 'accuracy']
+    test_loader = LoaderProvider(opt).get_data_loader(False)
+    gan.evaluate_classifier(test_loader)
     for iteration in range(opt.nsteps):
         gan.train_iter()
         if iteration % opt.nsteps_save == 0 and iteration > 0:
@@ -135,25 +126,22 @@ def train_cgan(opt, logf):
             if scorer is not None:
                 val_score = scorer.validate(gan, logf)
                 print_message(logf, iteration, losses, loss_names, val_score)
-                if opt.use_wandb:
-                    wandb.log({'Intra-FID': val_score})
                 if scorer.sign * (val_score - min_score) < 0:
                     min_score = val_score
                     gan.save_networks(iteration)
                     Helper.log(logf, 'Saving the best model (iter {})'.format(iteration))
                     best_iteration = iteration
-                    # save images
-                    fake_images = gan.sample()
-                    Helper.save_images(fake_images, opt.sample_dir, 'fake',nrows=10)
                     if test_scorer is not None:
                         test_scorer.validate(gan, logf)
                         # print('FID = {:.2f}'.format(fid_score))s
-                torch.cuda.empty_cache()
             else:
-                print_message(logf, iteration, losses, loss_names)
                 gan.save_networks(iteration)
                 Helper.log(logf, 'Saving the best model (iter {})'.format(iteration))
-                torch.cuda.empty_cache()
+                print_message(logf, iteration, losses, loss_names)
+            # save images
+            fake_images = gan.sample()
+            Helper.save_images(fake_images, opt.sample_dir, 'fake_' + str(iteration), nrows=10)
+            torch.cuda.empty_cache()
              # add to log
             # writer.add_scalar('fid/train', val_score, iteration)
             # writer.add_scalar('fid/loss_G', losses['G'], iteration)

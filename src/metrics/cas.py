@@ -54,25 +54,31 @@ preprocess_transform = get_preprocess_transform()
 
 
 class Classifiers(object):
-    def __init__(self, opt, checkpoint_dir=None):
+    def __init__(self, opt, cas=True):
         self.opt = opt
-        if self.opt.data_type in [constant.MNIST, constant.FASHION]:
-            self.net = Mnistnet(self.opt.num_classes)
-        elif self.opt.data_type == constant.IMAGENET:
-            self.net = models.resnet152(pretrained=True).to(opt.device)
-        elif self.opt.data_type == constant.CIFAR10:
-            # self.net = ResNet18(self.opt.img_size, self.opt.img_channel, self.opt.num_classes)
-            self.net = ResNet18(False, False, opt.device)
-        else: # CIFAR100
-            # self.net = torch.hub.load("chenyaofo/pytorch-cifar-models", "cifar100_resnet56", pretrained=False)
-            self.net = Lenet_32(n_channels=3, n_classes=100).to(opt.device)
-            # self.net = ResNet18(False, False, opt.device, num_classes=100)
-        self.checkpoint_dir = os.path.join(self.opt.checkpoint_dir, 'cas') if checkpoint_dir is None else checkpoint_dir
-        Helper.try_make_dir(self.checkpoint_dir)
+        if cas:
+            if self.opt.data_type in [constant.MNIST, constant.FASHION]:
+                self.net = Mnistnet(self.opt.num_classes)
+            elif self.opt.data_type == constant.IMAGENET:
+                self.net = models.resnet152(pretrained=True).to(opt.device)
+            elif self.opt.data_type == constant.CIFAR10:
+                # self.net = ResNet18(self.opt.img_size, self.opt.img_channel, self.opt.num_classes)
+                self.net = ResNet18(False, False, opt.device)
+            else: # CIFAR100
+                self.net = Lenet_32(n_channels=3, n_classes=100).to(opt.device)
+                # self.net = ResNet18(False, False, opt.device, num_classes=100)
+            self.checkpoint_dir = os.path.join(self.opt.checkpoint_dir, 'cas') 
+            Helper.try_make_dir(self.checkpoint_dir)
+        else: # gan-test
+            netname = {
+                'cifar100': "cifar100_resnet56",
+                'cifar10' : "cifar10_resnet32"
+            }[opt.data_type]
+            self.net = torch.hub.load("chenyaofo/pytorch-cifar-models", netname, pretrained=True)
         self.net = self.net.to(self.opt.device)
 
     def load_network(self, pretrained=False):
-        if self.opt.data_type == constant.IMAGENET:
+        if self.opt.data_type in [constant.IMAGENET, constant.CIFAR100]:
             print('Load from Torch Zoo')
             return True
         name = 'resnet18.pt'if pretrained else 'best_net.pth'
@@ -88,7 +94,7 @@ class Classifiers(object):
 
     def train(self, trainloader, valloader):
         # optimizer = optim.Adam(self.net.parameters(), lr=self.opt.c_lr, betas=(0, 0.999))
-        optimizer = optim.SGD(self.net.parameters(), lr=1e-4, weight_decay=1e-5)
+        optimizer = optim.SGD(self.net.parameters(), lr=0.1, weight_decay=1e-4)
         criterionCE = nn.CrossEntropyLoss()
         elapsed_time, best_accuracy, total_steps = 0, -np.inf, len(trainloader)
         nepochs = self.opt.nepochs
@@ -114,10 +120,10 @@ class Classifiers(object):
 
                 alpha = 0.01
                 # l1_norm = sum(p.abs().sum() for p in model.parameters())
-                l2_norm = 0
-                for p in self.net.parameters():
-                    l2_norm += torch.norm(p)
-                loss = criterionCE(logits, targets) + alpha * l2_norm
+                # l2_norm = 0
+                # for p in self.net.parameters():
+                #     l2_norm += torch.norm(p)
+                loss = criterionCE(logits, targets) #+ alpha * l2_norm
 
                 precs = Helper.accuracy(logits, targets, topk=(1,))
                 prec1 = precs[0]
@@ -166,7 +172,7 @@ class Classifiers(object):
             # print(batch_idx)
             targets = Variable(targets).long().to(self.opt.device)
             inputs = Variable(inputs).to(self.opt.device)
-            # inputs = self.normalize(inputs)
+            inputs = self.normalize(inputs)
             with torch.no_grad():
                 logits = self.net(inputs)
                 loss = criterion(logits, targets)
