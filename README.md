@@ -19,7 +19,7 @@
 
 ### Running script
 ```
-python main.py --data_type <data>   --gan_type <method> --exp_mode <experiment>  --label_ratio <label_ratio>
+python main.py --data_type <data> --gan_type <method> --exp_mode <experiment>  --label_ratio <label_ratio>
 ```
 
 Here, values of arguments can be found in constant.py 
@@ -29,7 +29,7 @@ Here, values of arguments can be found in constant.py
 We use the the main script with flag: --is_train. For instance, to train InRep+ on CIFAR10 with 10% supervision, we use the script:
 
 ```
-python main.py --data_type  cifar10   --gan_type inrep --exp_mode complexity --label_ratio 0.1 --is_train --nepochs 10 ---nsteps_save 10
+python main.py --data_type  cifar10 --gan_type inrep --exp_mode complexity --label_ratio 0.1 --is_train --nepochs 10 ---nsteps_save 10
 ```
 ### Inference
 
@@ -38,6 +38,8 @@ For testing, we use the main script with testing metrics (fid, intrafid, cas, pr
 ```
 python main.py --data_type  cifar10   --gan_type inrep --exp_mode complexity --label_ratio 0.1 -t fid
 ```
+
+Our pretrained models can be found [here](https://drive.google.com/drive/u/1/folders/1_89ycRW3N6h7RdYAEQ8_gOjrHbvh6pFh)
 ### Credits
 
 We reuse the repositories from several sources: [StudioGAN](https://github.com/POSTECH-CVLab/PyTorch-StudioGAN), [rGAN](https://github.com/takuhirok/rGAN), [pytorch-fid](https://github.com/mseitzer/pytorch-fid)
