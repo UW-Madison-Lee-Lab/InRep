@@ -2,11 +2,7 @@ import constant
 import torch
 import torch.nn as nn
 from models.model_ops import init_net, onehot, get_norm
-# mod = import_module('models.networks')
-# Gen = getattr(mod, data_type.upper() + "_Generator")# %%
-# net = Gen(gan_type==2, noise_dim, img_size, out_channel, num_class)
 
-# MineGAN
 class Miner(nn.Module):
     def __init__(self, u_dim, z_dim, nclasses):
         super().__init__()
@@ -34,7 +30,6 @@ class Miner(nn.Module):
         z = self.fc(x)
         return z
 
-# Gan-reprogramming 
 class Modifier(nn.Module):
     # h_\theta in the paper
     def __init__(self, u_dim, z_dim):
@@ -58,36 +53,19 @@ class Modifier(nn.Module):
         return self.fc(u)
 
 
-def define_classifier(data_type):
-    netname = {
-        'cifar100': "cifar100_resnet56",
-        'cifar10' : "cifar10_resnet32"
-    }[data_type]
-    return torch.hub.load("chenyaofo/pytorch-cifar-models", netname, pretrained=True)
-    
-
-# RepGAN
+# inrep
 def define_M(cfgs):
-    if cfgs.gan_type == constant.REPGAN_AB:
-        from .networks.modifer import NonInvModifier as Modifier
+    if cfgs.gan_type == constant.INREP_AB:
+        from .networks.modifer_block import NonInvModifier as Modifier
     else:
-        from .networks.modifer import ResNetModifier as Modifier
-        
-    nlayers = 3
-    return Modifier(nlayers, cfgs.u_dim, cfgs.z_dim, cfgs.num_classes)
+        if cfgs.data_type == constant.CIFAR10:
+            from .networks.modifer_fc import ResNetModifier as Modifier
+        else:
+            from .networks.modifer_block import ResNetModifier as Modifier
+    return Modifier(3, cfgs.u_dim, cfgs.z_dim, cfgs.num_classes)
 
 
 def define_G(cfgs):
-    if cfgs.data_type == constant.IMAGENETTE:
-        from .networks.big_resnet_repgan import Generator
-        net = Generator(cfgs.z_dim, cfgs.img_size, cfgs.g_conv_dim, cfgs.g_spectral_norm, cfgs.attention, cfgs.attention_after_nth_gen_block, cfgs.activation_fn, cfgs.g_init, cfgs.G_depth, False)
-        return net
-
-    if cfgs.data_type == constant.MNIST:
-        from .networks.dcgan_mnist import Generator
-        net = Generator(cfgs.z_dim, cfgs.img_size, cfgs.num_classes)
-        return net
-
     if cfgs.decoder_type == constant.STYLEGAN:
         from .networks.stylegan import Generator
         net = Generator(256, 512, 8, channel_multiplier=2)
@@ -104,31 +82,15 @@ def define_G(cfgs):
         #                     cfgs.g_init, cfgs.G_depth, False)
         return net
 
-    if cfgs.decoder_type == constant.GAN:
-        if cfgs.gan_type in [constant.PROJGAN, constant.ACGAN]: # conditional gan
-            from .networks.resnet_rcgan import Generator
-        elif cfgs.gan_type in [constant.DECODER, constant.REPGAN, constant.REPGAN_AB, constant.GANREP, constant.TRANSFERGAN, constant.MINEGAN, constant.SRGAN, constant.INREP]:
-            from .networks.resnet_rcgan import UncondGenerator as Generator
-        net = Generator(channels=256, image_size=cfgs.img_size, num_classes=cfgs.num_classes)
-    else:
-        from .networks.glow import Glow
-        net = Glow()
+    if cfgs.gan_type in [constant.PROJGAN, constant.ACGAN]: # conditional gan
+        from .networks.resnet_main import Generator
+    elif cfgs.gan_type in [constant.DECODER, constant.INREP, constant.INREP_AB, constant.GANREP, constant.MINEGAN, constant.INREP]:
+        from .networks.resnet_main import UncondGenerator as Generator
+    net = Generator(channels=256, image_size=cfgs.img_size, num_classes=cfgs.num_classes)
     
     return net
 
 def define_D(cfgs):
-    if cfgs.data_type == constant.IMAGENETTE:
-        from .networks.big_resnet_repgan import Discriminator
-        net = Discriminator(cfgs.img_size, cfgs.d_conv_dim, cfgs.d_spectral_norm, cfgs.attention, cfgs.attention_after_nth_dis_block,
-                            cfgs.activation_fn, cfgs.nonlinear_embed,
-                            cfgs.normalize_embed, cfgs.d_init, cfgs.D_depth, False)
-        return net
-
-    if cfgs.data_type == constant.MNIST:
-        from .networks.dcgan_mnist import Discriminator
-        net = Discriminator(cfgs.gan_type, cfgs.num_classes)
-        return net
-
     if cfgs.decoder_type == constant.STYLEGAN:
         from .networks.stylegan import Discriminator
         net = Discriminator(256, 2, num_classes=cfgs.num_classes)
@@ -142,13 +104,13 @@ def define_D(cfgs):
         return net
 
     if cfgs.gan_type in [constant.PROJGAN]:
-        from .networks.resnet_rcgan import ProjectionDiscriminator as Discriminator
-    elif cfgs.gan_type in [constant.ACGAN, constant.TRANSFERGAN, constant.MINEGAN]:
-        from .networks.resnet_rcgan import ACGANDiscriminator as Discriminator
+        from .networks.resnet_main import ProjectionDiscriminator as Discriminator
+    elif cfgs.gan_type in [constant.ACGAN, constant.MINEGAN]:
+        from .networks.resnet_main import ACGANDiscriminator as Discriminator
     elif cfgs.gan_type in [constant.DECODER, constant.GANREP]:
-        from .networks.resnet_rcgan import UncondDiscriminator as Discriminator
-    elif cfgs.gan_type in [constant.REPGAN, constant.SRGAN, constant.REPGAN_AB]:
-        from .networks.resnet_rcgan import RepGANDiscriminator as Discriminator
+        from .networks.resnet_main import UncondDiscriminator as Discriminator
+    elif cfgs.gan_type in [constant.INREP, constant.INREP_AB]:
+        from .networks.resnet_main import inrepDiscriminator as Discriminator
     net = Discriminator(num_classes=cfgs.num_classes, channels=128, spectral_norm=True, pooling='sum')
    
     return net

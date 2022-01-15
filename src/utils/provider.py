@@ -1,16 +1,9 @@
-"""
-    Helper class
-    @author 
-    @editor 
-    @date 08/01/2020
-"""
 import os, math, platform, PIL
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, ConcatDataset, Subset, Dataset
 from torchvision import datasets, transforms
 from copy import deepcopy
-import h5py as h5
 import constant
 import sys
 import functools
@@ -21,22 +14,6 @@ if sys.version_info[0] == 2:
 else:
     import pickle
 
-
-class LoadTinyDataset(Dataset):
-    def __init__(self, data, labels, transforms):
-        super(LoadTinyDataset, self).__init__()
-        self.transforms = transforms
-        self.data = data
-        self.targets = labels
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        img = self.data[index]
-        label = self.targets[index]
-        img, label = self.transforms(img), int(label)
-        return img, label
 
 
 
@@ -154,17 +131,9 @@ class DataProvider:
                 (not deterministic) and transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                # (not deterministic) and
                 # transforms.Lambda(lambda x: x + 1. / 128 * torch.rand(x.size())),
             ] if t is not False
         ]) 
-
-        # transform_imagenet = transforms.Compose([
-        #     transforms.Resize(256),
-        #     transforms.CenterCrop(224),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        # ])
 
         def normalize(x):
             x = 2 * ((x * 255. / 256.) - .5)
@@ -172,11 +141,8 @@ class DataProvider:
             return x
         
         transform_cifar = transforms.Compose([transforms.ToTensor(), transforms.Lambda(normalize)])
-
         if data_type == constant.MNIST:
             dataset = datasets.MNIST(data_dir, train=train, download=True, transform=transform_mnist)
-        elif data_type == constant.FASHION:
-            dataset = datasets.FashionMNIST(data_dir, train=train, download=True, transform=transform_mnist)
         elif data_type == constant.CIFAR10:
             if not(noise is None):
                 data_noise_type, noise_ratio, data_seed = noise
@@ -186,60 +152,9 @@ class DataProvider:
                         seed=data_seed)
                 dataset = Dataset(root=data_dir, train=train, download=True, transform=transform_cifar)
             else:
-                # dataset = datasets.CIFAR10(data_dir, train=train, download=True, transform=transform_cifar)
                 dataset = datasets.CIFAR10(data_dir, train=train, download=True, transform=transform_3D)
         elif data_type == constant.CIFAR100:
             dataset = datasets.CIFAR100(data_dir, train=train, download=True, transform=transform_3D)
-        elif constant.TINY == data_type:
-            mode = 'train' if train else 'valid'
-            hdf5_path = '../data/tiny/tiny_{}.h5'.format(mode)
-            if os.path.isfile(hdf5_path):
-                print('Loading %s into memory...' % hdf5_path)
-                with h5.File(hdf5_path, 'r') as f:
-                    imgs = np.asarray(f.get('imgs'))
-                    labels = np.asarray(f.get('labels'))
-                transform_3D = transforms.Compose(
-                 [transforms.ToPILImage(), transforms.Resize((img_size, img_size)), transforms.ToTensor(), transforms.Normalize(mean=(0.5, 0.5, 0.5), std= (0.5, 0.5, 0.5))])
-            else:
-                root = os.path.join('../data/tiny', 'TINY_ILSVRC2012', mode)
-                data = datasets.ImageFolder(root=root)
-                imgs = []
-                for i in range(len(data)):
-                    imgs.append(data[i][0])
-                labels = [data[i][1] for i in range(len(data))]
-                hf = h5.File(hdf5_path, 'w')
-                hf.create_dataset('imgs', data=np.stack(imgs, axis=0))
-                hf.create_dataset('labels', data=np.asarray(labels))
-                hf.close()
-            dataset = LoadTinyDataset(imgs, labels, transform_3D)
-        elif constant.IMAGENET == data_type:
-            print('Using image labels')
-            mode = 'train' if train else 'val'
-            hdf5_path = '../data/imagenet/imagenet_{}.h5'.format(mode)
-            if os.path.isfile(hdf5_path):
-                print('Loading %s into memory...' % hdf5_path)
-                with h5.File(hdf5_path, 'r') as f:
-                    imgs = f['imgs'][:]
-                    labels = f['labels'][:]
-            else:
-                data_dir = '/mnt/nfs/work1/mccallum/dthai/tuan_data/imagenet/{}'.format(mode)
-                dataset = datasets.ImageFolder(data_dir, transform_imagenet)
-                nlabels = len(dataset.classes)
-                print('#-labels', nlabels)
-        elif constant.IMAGENETTE == data_type:
-            print('Using image labels')
-            mode = 'train' if train else 'val'
-            hdf5_path = '../data/imagenette/imagenette_{}.h5'.format(mode)
-            if os.path.isfile(hdf5_path):
-                print('Loading %s into memory...' % hdf5_path)
-                with h5.File(hdf5_path, 'r') as f:
-                    imgs = f['imgs'][:]
-                    labels = f['labels'][:]
-            else:
-                data_dir = '../data/imagenette2/{}'.format(mode)
-                dataset = datasets.ImageFolder(data_dir, transform_imagenet)
-                nlabels = len(dataset.classes)
-                print('#-labels', nlabels)
         elif constant.CELEBA == data_type:
             mode = 'train' if train else 'test'
             dataset = get_celeba_dataset(mode, data_dir + '/celebA', img_size, num_attrs)
@@ -354,7 +269,7 @@ class LoaderProvider(object):
             else:
                 self.opt.data_noise_type = 'symmetric'
             dataset = DataProvider.load_dataset(self.opt.data_type, self.opt.img_size, self.opt.data_dir, train=train, noise=(self.opt.data_noise_type, self.opt.noise_ratio, self.opt.data_seed))
-            # repgan
+            # inrep
             if self.opt.gan_type == constant.GANREP:
                 inds = np.argwhere(np.asarray(dataset.targets) == self.opt.gan_class)
                 inds = inds.reshape(len(inds))

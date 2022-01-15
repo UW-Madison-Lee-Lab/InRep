@@ -1,10 +1,4 @@
 
-"""
-    WGAN_GP class
-    @editor 
-    @date 08/01/2020
-"""
-
 import numpy as np
 import torch
 import torch.nn as nn

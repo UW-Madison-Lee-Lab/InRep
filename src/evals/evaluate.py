@@ -1,10 +1,3 @@
-"""
-    Evaluate
-    @author 
-    @editor 
-    @date 08/01/2020
-"""
-
 import os
 import numpy as np
 from numpy.lib.type_check import real
@@ -27,21 +20,10 @@ from evals.eval_ops import load_gan, mix_sample, mix_sample_class, mix_sample_cl
 from evals.scorers import PrecisionScorer, FIDScorer, ClassFIDScorer
 import constant
 
-# from pytorch_gan_metrics import get_inception_score
-import matplotlib.pyplot as plt
-
-
 class Tester():
     def __init__(self, opt, load_data=False):
         self.opt, self.load_data = opt, load_data
-        if opt.data_type == constant.IMAGENET:
-            if opt.eval_mode == constant.INTRA_FID:
-                self.num_samples = 1000
-            else: 
-                self.num_samples = 10
-        elif opt.data_type == constant.TINY:
-            self.num_samples = 50
-        elif opt.data_type in [constant.CIFAR100, constant.IMAGENET]:
+        if opt.data_type in [constant.CIFAR100]:
             self.num_samples = 100
         else:
             self.num_samples = 1000
@@ -68,31 +50,9 @@ class Tester():
             self.save_samples(num_images=10)
             return None
 
-        if self.opt.eval_mode == constant.LIME:
-            print('Eval LIME')
-            self.load_data = True
-            self._evaluate_cas(lime=True)
-            return None
-
         if self.opt.eval_mode == constant.CAS: # Fitting capacity
             print('Eval CAS')
             score = self._evaluate_cas()
-            message = '{} {:.4f}'.format(self.offset, score)
-            logf = open(self.log_file, 'a+')
-            Helper.log(logf, message)
-            return None
-
-        if self.opt.eval_mode == constant.GAN_TEST:
-            print('Eval GAN-test')
-            scorer = PrecisionScorer(self.opt)
-            test_loader = self.get_loader(self._load_fake_data())
-            if self.opt.data_type == constant.IMAGENET:
-                full_dataset = self._load_real_data()
-                real_dataset = DataProvider.load_class_dataset(full_dataset, self.opt.gan_class)
-                test_loader = self.get_loader(real_dataset)
-            loss, score = scorer.evaluate(test_loader)
-            print('Testset -- Loss {:.4f} Accuracy: {:.4f}'.format(loss, score))
-            # for both two cases
             message = '{} {:.4f}'.format(self.offset, score)
             logf = open(self.log_file, 'a+')
             Helper.log(logf, message)
@@ -135,106 +95,21 @@ class Tester():
             block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
             inception_model = InceptionV3([block_idx]).to(self.opt.device)
             print('Eval FID @ ' + str(self.opt.gan_class))
-            if self.opt.gan_type in [constant.DECODER, constant.SRGAN, constant.REPGAN] and self.opt.gan_class >= 0:
+            if self.opt.gan_type in [constant.DECODER, constant.INREP] and self.opt.gan_class >= 0:
                 real_path, fake_path = get_path(self.opt.gan_class)
-                # if not(os.path.isfile(real_path)):
                 full_dataset = DataProvider.load_dataset(self.opt.data_type, self.opt.img_size, self.opt.data_dir, train=False, num_attrs=self.opt.num_attrs)
                 real_dataset = DataProvider.load_class_dataset(full_dataset, self.opt.gan_class, data_size=500)
-                # score
-                # else:
-                    # real_dataset = None
             else:
                 real_path, fake_path = get_path()
                 real_dataset = self._load_real_data() if not(os.path.isfile(real_path)) else None
 
             fake_dataset = self._load_fake_data() # modify here
-            # fake_dataset = DataProvider.load_class_dataset(full_dataset, 2, data_size=500)
             score = FID(inception_model, [real_path, fake_path], [real_dataset, fake_dataset], 64, self.opt.device, 2048, True)
-            # for both two cases
             message = '{} @ {} {:.4f}'.format(self.offset, self.opt.gan_class, score)
             logf = open(self.log_file, 'a+')
             Helper.log(logf, message)
             return None
-
-        if self.opt.eval_mode == constant.IS:
-            fake_dataset = self._load_fake_data()
-            score = get_is(fake_dataset)
-            message = '{} {:.4f} {:.4f}'.format(self.offset, score[0], score[1])
-            logf = open(self.log_file, 'a+')
-            Helper.log(logf, message)
-            return None
-
-        if self.opt.eval_mode == constant.PCA:
-            size = 10000
-            gan = load_gan(self.opt)
-            u = Helper.make_z_normal_(size, self.opt.u_dim).to(self.opt.device)
-            nsamples = size // self.opt.num_classes
-            labels = np.outer(np.arange(self.opt.num_classes), np.ones(nsamples)).flatten()
-            labels = torch.Tensor(labels).to(torch.long).to(self.opt.device)
-            x = gan.netM(u, labels)
-            x = x.detach().cpu().numpy()
-            np.save('../results/repgan_noises', x)
-            plt.figure()
-            plt.scatter(x[:, 0], x[:, 1], c='r')
-            plt.savefig('pca_repgan.png')
-            # apply pca on noises [N, D]
-            return None
         
-        if self.opt.eval_mode == constant.TNSE:
-            gan = load_gan(self.opt)
-            netC = Classifiers(self.opt, self.opt.real_classifier_dir)
-            valid = netC.load_network(pretrained=True)
-            netC.net.eval()
-            if not valid:
-                raise NotImplementedError
-            batch_size, niters = 128, 10
-            noises, labels = [], []
-            while niters > 0:
-                z = Helper.make_z_normal_(batch_size, self.opt.z_dim).to(self.opt.device)
-                with torch.no_grad():
-                    samples = gan.netG(z)
-                    logits = netC.net(samples)
-                    preds = np.argmax(logits.data.cpu().numpy(), axis=1) 
-                noises.append(z.cpu().data)
-                labels.append(preds)
-                del samples
-                niters -= 1
-            noises = np.concatenate(noises, axis=0)
-            labels = np.concatenate(labels, axis=0)
-            np.save('../results/class_noises', {'noises': noises, 'labels': labels})
-            # plot tsne
-            from sklearn.manifold import TSNE 
-            import seaborn as sns 
-            import pandas as pd
-            tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
-            z = tsne.fit_transform(noises) 
-            # remove outlier points
-
-            d = np.linalg.norm(z, axis=1)
-            # calculate summary statistics
-            data_mean, data_std = np.mean(d), np.std(d)
-            # identify outliers
-            cut_off = data_std * 3
-            # identify outliers
-            normal_data_idx = [abs(d[i] - data_mean) < cut_off for i in range(len(d))]
-            z = z[normal_data_idx, :]
-            labels = labels[normal_data_idx]
-
-            df = pd.DataFrame(z, columns=['x1', 'x2'])
-            df['y'] = labels 
-            df['label'] = df['y'].apply(lambda i: str(i))
-            plt.figure(figsize=(16,10))
-            sns.scatterplot( 
-                x="x1", y="x2", 
-                hue="y", 
-                palette=sns.color_palette("hls", 10), 
-                data=df, 
-                legend="full", 
-                alpha=0.3 
-            )    
-            plt.savefig('../results/tsne_ugan_{}.png'.format(self.opt.data_type))
-
-                    
         if self.opt.eval_mode == constant.INTRA_FID: # classFID
             print('Eval Class FID')
             # load inception
@@ -247,7 +122,6 @@ class Tester():
             if self.opt.gan_class > -1:
                 test_classes = [self.opt.gan_class]
             else:
-                # test_classes = np.arange(10) if self.opt.num_classes > 10 else np.arange(self.opt.num_classes)
                 test_classes = np.arange(self.opt.num_classes)
             fake_data_lst, fake_label_lst = self._load_fake_data_class(test_classes)
             scores = []
@@ -323,8 +197,7 @@ class Tester():
                 data, labels = mix_sample_class(gan, self.num_samples, target_class)
                 data_lst.append(data)
                 label_lst.append(labels)
-            if not self.opt.data_type == constant.IMAGENET:
-                np.save(fake_data_path, {'data': data_lst, 'labels': label_lst})
+            np.save(fake_data_path, {'data': data_lst, 'labels': label_lst})
             
         return data_lst, label_lst
 
@@ -336,7 +209,7 @@ class Tester():
             data, labels = dataset['data'], dataset['labels']
         else:
             gan = load_gan(self.opt, epoch)
-            if self.opt.gan_type in [constant.SRGAN, constant.REPGAN] and self.opt.gan_class >= 0:
+            if self.opt.gan_type in [constant.SRGAN, constant.INREP] and self.opt.gan_class >= 0:
                 data, labels = mix_sample_class(gan, self.num_samples, self.opt.gan_class)
             elif self.opt.gan_type == constant.DECODER and self.opt.gan_class >= 0:
                 if self.opt.decoder_type == constant.BIGGAN:
@@ -353,8 +226,7 @@ class Tester():
                     data, labels = mix_sample_class_ugan(gan, netC, self.num_samples, self.opt.gan_class)
             else:
                 data, labels = mix_sample(gan, self.num_samples, self.opt.num_classes)
-            if not self.opt.data_type == constant.IMAGENET:
-                np.save(fake_data_path, {'data': data, 'labels': labels})
+            np.save(fake_data_path, {'data': data, 'labels': labels})
         datasets = GANDataset(torch.tensor(data), torch.tensor(labels, dtype=torch.long))
         return datasets
 
@@ -367,7 +239,6 @@ class Tester():
             samples = gan.sample(num_images)
         else:
             samples = []
-            # nclasses = min(10, self.opt.num_classes)
             nclasses = 3
             num_images = 5
             for k in range(nclasses):

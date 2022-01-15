@@ -1,11 +1,4 @@
 
-"""
-	WGAN_GP class
-	@editor 
-	@date 08/01/2020
-"""
-
-
 import torch
 import torch.nn as nn
 import torch.optim as optim

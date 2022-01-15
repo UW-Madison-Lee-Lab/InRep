@@ -60,18 +60,16 @@ class UGAN(BaseModel):
 
     def backward_D(self, reals, fakes):
         reals = reals.to(self.device)
-        dis_out_real = self.netD(reals)
-        dis_out_fake = self.netD(fakes)
+        dis_out_real, _ = self.netD(reals)
+        dis_out_fake, _ = self.netD(fakes)
         self.loss_D = loss_hinge_dis(dis_out_real, dis_out_fake)
 
     def backward_G(self, fakes):
-        dis_out_fake = self.netD(fakes)
+        dis_out_fake, _ = self.netD(fakes)
         dis_fake = loss_hinge_gen(dis_out_fake)
         self.loss_G = dis_fake
 
     def sample(self, data_size=None, labels=None, target_class=None):
-        # checkpoint = torch.load('../results/checkpoints/udecoder/gan/imagenet-1000/net_G.pth', map_location=str(self.opt.device))
-        # self.netG.load_state_dict(checkpoint)
         if data_size is None:
             data_size = self.batch_size
         self.netG.eval()

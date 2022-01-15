@@ -13,12 +13,8 @@ import constant
 from metrics.resnets import resnet18 as ResNet18
 
 from PIL import Image
-# from lime import lime_image
-# from skimage.segmentation import mark_boundaries
-import matplotlib.pyplot as plt
 from torchvision import models, transforms
 import torchvision
-from matplotlib import cm
 
 
 

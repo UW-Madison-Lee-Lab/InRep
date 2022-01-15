@@ -1,9 +1,3 @@
-
-"""
-    @editor 
-    @date 08/01/2020
-"""
-
 import math, os
 import numpy as np
 import torch

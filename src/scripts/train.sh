@@ -1,10 +1,12 @@
 #!/bin/bash
-data=$1
-gan_type=$2
-exp_mode=$3
+data=cifar10
+gan_type=inrep
+exp_mode=complexity
 phase=1
 resume=0
-epochs=300
+epochs=100
+gan_class=0
+label_ratio=0.1
 
 python main.py \
     --data_type $data \
@@ -13,8 +15,3 @@ python main.py \
     --is_train --nepochs $epochs --resume $resume --nsteps_save 10 \
 
 echo "Done CGAN"
-python main.py --is_train -d tiny -g ugan -e 200 -r 1
-python main.py -d cifar10 -g udecoder -p flow -v visual
-python main.py --is_train -d tiny -g ugan -e 200 -r 1
-
-python main.py -d cifar10 -g ganrep -v fid

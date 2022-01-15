@@ -14,14 +14,6 @@ def load_my_state_dict(net, state_dict):
             param = param.data
         own_state[name].copy_(param)
 
-# def load_part_dict(net, state_dict):
-#     # 1. filter out unnecessary keys
-#     pretrained_dict = {k: v for k, v in state_dict.items() if k in state_dict}
-#     # 2. overwrite entries in the existing state dict
-#     model_dict.update(pretrained_dict) 
-#     # # 3. load the new state dict
-#     # model.load_state_dict(pretrained_dict)
-
 def load_pretrained_net(net, load_path, device):
     net = net.to(device)
     check_point = torch.load(load_path, map_location=str(device))
@@ -46,12 +38,10 @@ def get_gan(opt):
             from models.gans.ugan import UGAN as GAN
         else:
             from models.gans.decoder import Decoder as GAN
-    elif opt.gan_type == constant.REPGAN:
-        from models.gans.repgan import RepGAN as GAN
-    elif opt.gan_type == constant.REPGAN_AB:
-        from models.gans.repgan_ab import RepGAN as GAN
-    elif opt.gan_type == constant.SRGAN:
-        from models.gans.srgan import SRGAN as GAN
+    elif opt.gan_type == constant.INREP:
+        from models.gans.inrep import InRep as GAN
+    elif opt.gan_type == constant.INREP_AB:
+        from models.gans.inrep_ab import InRep as GAN
     elif opt.gan_type == constant.GANREP:
         from models.gans.ganrep import GANRep as GAN
     elif opt.gan_type == constant.ACGAN:
@@ -64,8 +54,6 @@ def get_gan(opt):
         from models.gans.transfergan import TransferGAN as GAN
     elif opt.gan_type == constant.MINEGAN:
         from models.gans.minegan import MineGAN as GAN
-    elif opt.gan_type == constant.INREP:
-        from models.gans.inrep import InRep as GAN
     else:
         print('Van GAN is not implemented yet')
     # model

@@ -1,9 +1,4 @@
 
-"""
-    @editor 
-    @date 08/01/2020
-"""
-
 import random, math
 import numpy as np
 

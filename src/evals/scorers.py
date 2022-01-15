@@ -18,17 +18,7 @@ class BaseScorer(object):
     def __init__(self, opt):
         self.sign = 1 # for desending scores
         self.num_classes = opt.num_classes
-        if opt.data_type in [constant.TINY, constant.IMAGENET]:
-            self.num_samples = 50 
-        else:
-            self.num_samples = 10000 // self.num_classes
-
-        if opt.eval_mode == constant.INTRA_FID:
-            if opt.data_type == constant.IMAGENET:
-                self.num_samples = 1000
-            elif opt.data_type == constant.TINY:
-                self.num_samples = 100
-            
+        self.num_samples = 10000 // self.num_classes
 
     def validate(self, gan, logf):
         pass

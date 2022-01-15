@@ -1,23 +1,11 @@
-
-"""
-	Helper class
-	@author 
-	@editor 
-	@date 08/01/2020
-"""
-
 import torch.nn as nn
 import os, gzip, torch
 import numpy as np
 import scipy.misc
 # import imageio
-import matplotlib.pyplot as plt
 import torchvision
 import math
-import seaborn as sns
-import matplotlib as mpl
 from scipy.stats import truncnorm
-from utils.plotter import plot_toy
 
 
 class AverageMeter(object):
