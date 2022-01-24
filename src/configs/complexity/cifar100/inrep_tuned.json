@@ -1,0 +1,25 @@
+{
+  "data_processing":{ 
+    "dataset_name": "cifar100",
+    "img_size": 32,
+    "num_classes": 10,
+    "img_channel": 3
+  },
+  "train": {
+    "model": {
+      "architecture": "resnet",
+      "z_dim": 128,
+      "u_dim": 118
+    },
+    "optimization": {
+      "optimizer": "Adam",
+      "batch_size": 64,
+      "d_lr": 2e-5,
+      "g_lr": 2e-4,
+      "beta1": 0.5,
+      "beta2": 0.99,
+      "g_steps_per_iter": 1,
+      "d_steps_per_iter": 1
+    }
+  }
+}

@@ -33,7 +33,7 @@ def load_pretrained_net(net, load_path, device):
 
 def get_gan(opt):
     loss_names = ['G', 'D']
-    if opt.gan_type == constant.DECODER:
+    if opt.gan_type == constant.UGAN:
         if opt.decoder_type in [constant.BIGGAN, constant.GAN, constant.SCGAN, constant.STYLEGAN]: 
             from models.gans.ugan import UGAN as GAN
         else:

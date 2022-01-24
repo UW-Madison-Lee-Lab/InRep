@@ -1,23 +1,21 @@
 import os
 import numpy as np
-from numpy.lib.type_check import real
+# from numpy.lib.type_check import real
 
 import torch
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader, random_split
 
-from utils.provider import DataProvider
+from datasets.dataset_provider import DataProvider
 from utils.helper import Helper
 from models.model_ops import GANDataset
 from metrics.fid_score import FID, get_activations
 from metrics.inception import InceptionV3
 from metrics.cas import Classifiers
 from metrics.precision_recall import knn_precision_recall_features
-from metrics.inception_score import get_is
 from metrics.cas import Classifiers
 
 from evals.eval_ops import load_gan, mix_sample, mix_sample_class, mix_sample_class_ugan
-from evals.scorers import PrecisionScorer, FIDScorer, ClassFIDScorer
 import constant
 
 class Tester():
@@ -34,16 +32,6 @@ class Tester():
         return DataLoader(dataset, batch_size=self.opt.batch_size, shuffle=True, drop_last=False, num_workers=2)
 
     def evaluate(self):
-        # Evaluation
-        print('Evaluate !!!!!\n=== Exp {}: {} labels, {} noises \n=== Data {} - {} \n=== Gan {} class {}'.format(
-                self.opt.exp_mode,
-                self.opt.label_ratio,
-                self.opt.noise_ratio,
-                self.opt.data_type,
-                self.opt.num_classes,
-                self.opt.gan_type,
-                self.opt.gan_class)
-        )
         # evaluatation mode
         if self.opt.eval_mode == constant.VISUAL:
             print('Eval Visual')
@@ -95,7 +83,7 @@ class Tester():
             block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
             inception_model = InceptionV3([block_idx]).to(self.opt.device)
             print('Eval FID @ ' + str(self.opt.gan_class))
-            if self.opt.gan_type in [constant.DECODER, constant.INREP] and self.opt.gan_class >= 0:
+            if self.opt.gan_type in [constant.UGAN, constant.INREP] and self.opt.gan_class >= 0:
                 real_path, fake_path = get_path(self.opt.gan_class)
                 full_dataset = DataProvider.load_dataset(self.opt.data_type, self.opt.img_size, self.opt.data_dir, train=False, num_attrs=self.opt.num_attrs)
                 real_dataset = DataProvider.load_class_dataset(full_dataset, self.opt.gan_class, data_size=500)
@@ -211,7 +199,7 @@ class Tester():
             gan = load_gan(self.opt, epoch)
             if self.opt.gan_type in [constant.SRGAN, constant.INREP] and self.opt.gan_class >= 0:
                 data, labels = mix_sample_class(gan, self.num_samples, self.opt.gan_class)
-            elif self.opt.gan_type == constant.DECODER and self.opt.gan_class >= 0:
+            elif self.opt.gan_type == constant.UGAN and self.opt.gan_class >= 0:
                 if self.opt.decoder_type == constant.BIGGAN:
                     data, labels = mix_sample(gan, self.num_samples, 1)
                 else:
@@ -235,7 +223,7 @@ class Tester():
 
     def save_samples(self, num_images=5):
         gan = load_gan(self.opt)
-        if constant.DECODER == self.opt.gan_type:
+        if constant.UGAN == self.opt.gan_type:
             samples = gan.sample(num_images)
         else:
             samples = []

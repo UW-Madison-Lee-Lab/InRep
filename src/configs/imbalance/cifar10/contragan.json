@@ -4,7 +4,7 @@
       "data_path": "./data/cifar10",
       "img_size": 32,
       "img_channel": 3,
-      "num_classes": 100,
+      "num_classes": 10,
       "batch_size4prcsing": 256,
       "chunk_size": 500,
       "compression": false
@@ -13,21 +13,21 @@
     "train": {
       "model": {
         "architecture": "resnet",
-        "conditional_strategy": "ACGAN",
-        "pos_collected_numerator": false,
-        "hypersphere_dim": "N/A",
+        "conditional_strategy": "ContraGAN",
+        "pos_collected_numerator": true,
+        "hypersphere_dim": 512,
         "nonlinear_embed": false,
-        "normalize_embed": false,
-        "g_spectral_norm": false,
-        "d_spectral_norm": false,
+        "normalize_embed": true,
+        "g_spectral_norm": true,
+        "d_spectral_norm": true,
         "activation_fn": "ReLU",
-        "attention": false,
-        "attention_after_nth_gen_block": "N/A",
-        "attention_after_nth_dis_block": "N/A",
-        "z_dim": 128,
-        "shared_dim": "N/A",
-        "g_conv_dim": 64,
-        "d_conv_dim": 64,
+        "attention": true,
+        "attention_after_nth_gen_block": 2,
+        "attention_after_nth_dis_block": 1,
+        "z_dim": 80,
+        "shared_dim": 128,
+        "g_conv_dim": 96,
+        "d_conv_dim": 96,
         "G_depth": "N/A",
         "D_depth": "N/A"
       },
@@ -36,27 +36,27 @@
         "optimizer": "Adam",
         "batch_size": 64,
         "accumulation_steps": 1,
-        "d_lr": 2e-4,
-        "g_lr": 2e-4,
+        "d_lr": 0.0002,
+        "g_lr": 0.0002,
         "momentum": "N/A",
         "nesterov": "N/A",
         "alpha": "N/A",
-        "beta1": 0,
-        "beta2": 0.9,
+        "beta1": 0.5,
+        "beta2": 0.999,
         "g_steps_per_iter": 1,
         "d_steps_per_iter": 5,
-        "total_step": 1000
+        "total_step": 100000
       },
   
       "loss_function": {
         "adv_loss": "hinge",
   
-        "contrastive_lambda": "N/A",
-        "margin": "N/A", 
-        "tempering_type": "N/A",
-        "tempering_step": "N/A",
-        "start_temperature": "N/A",
-        "end_temperature": "N/A",
+        "contrastive_lambda": 1.0,
+        "margin": 0.0, 
+        "tempering_type": "discrete",
+        "tempering_step": 1,
+        "start_temperature": 1.0,
+        "end_temperature": 1.0,
   
         "weight_clipping_for_dis": false,
         "weight_clipping_bound": "N/A",
@@ -104,10 +104,9 @@
         "latent_op_beta":"N/A",
         "latent_norm_reg_weight":"N/A",
   
-        "ema": false,
-        "ema_decay": "N/A",
-        "ema_start": "N/A"
+        "ema": true,
+        "ema_decay": 0.9999,
+        "ema_start": 1000
       }
     }
   }
-  

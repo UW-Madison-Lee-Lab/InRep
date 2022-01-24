@@ -6,15 +6,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import time
 from models.base_model import BaseModel
 from models.nets import define_D, define_G, define_M
 from utils.helper import Helper
 from models.networks.common import weights_init, weights_init_zeros
 from utils.losses import loss_hinge_dis, loss_hinge_gen
 from models.gans.gan_ops import load_pretrained_net, generate_samples
-from models.model_ops import GANLoss, onehot
-
+from models.model_ops import GANLoss
+import constant
 torch.backends.cudnn.enabled = True
 
 class InRep(BaseModel):
@@ -57,6 +56,7 @@ class InRep(BaseModel):
             self.iteration = 0
             self.total_step = opt.nsteps
             self.iterator = opt.iterator
+            self.imbalance = opt.exp_mode == constant.EXP_IMBALANCE
         else:
             self.model_names = ['M']
             self.netM.eval()
@@ -69,11 +69,13 @@ class InRep(BaseModel):
 
     def pu_loss(self, dis_errD_real, dis_errD_real_g, dis_errD_fake):
         warmup_iters = 30
-        alpha = 1.0 * math.pow(0.99, self.iteration /self.total_step)
+        # alpha = 1.0 * math.pow(0.99, self.iteration /self.total_step)
+        n = self.nclasses
+        if self.imbalance:
+            n -= 2
         if self.iteration > warmup_iters:
             t = self.iteration - warmup_iters
-            pi = 1 + t * (self.nclasses - 1)/(self.total_step - 1)
-            pi = pi / self.nclasses
+            pi = 1/n + t * (1 - 1/n)/(self.total_step - 1)
             loss = (1 + pi) * dis_errD_real + torch.relu(dis_errD_fake - pi*dis_errD_real_g)
         else:
             loss = dis_errD_real + dis_errD_fake

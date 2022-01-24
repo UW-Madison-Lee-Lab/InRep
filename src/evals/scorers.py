@@ -3,7 +3,7 @@ import numpy as np
 from copy import deepcopy
 from torch.utils.data import DataLoader
 
-from utils.provider import DataProvider
+from datasets.dataset_provider import DataProvider
 from utils.helper import Helper
 from models.model_ops import GANDataset
 from metrics.fid_score import FID

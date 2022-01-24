@@ -25,7 +25,7 @@
       "attention_after_nth_gen_block": "N/A",
       "attention_after_nth_dis_block": "N/A",
       "z_dim": 128,
-      "u_dim": 128,
+      "u_dim": 118,
       "shared_dim": "N/A",
       "g_conv_dim": 64,
       "d_conv_dim": 64,
@@ -46,7 +46,7 @@
       "beta2": 0.9,
       "g_steps_per_iter": 1,
       "d_steps_per_iter": 5,
-      "total_step": 1000
+      "total_step": 100000
     },
 
     "loss_function": {

@@ -9,7 +9,7 @@ FLOW = 'flow'
 VAE = 'vae'
 
 #cgan
-DECODER = 'udecoder'
+UGAN = 'ugan'
 INREP = 'inrep'
 INREP_AB = 'inrep_ab'
 GANREP = 'ganrep'
@@ -22,8 +22,8 @@ SRGAN = 'srgan'
 
 
 #exp
-EXP_FULL = 'full'
 EXP_COMPLEXITY = 'complexity'
+EXP_IMBALANCE = 'imbalance'
 EXP_ASYM_NOISE = 'asymnoise'
 
 #data
@@ -32,6 +32,7 @@ FASHION='fashion'
 CIFAR10='cifar10'
 CIFAR100='cifar100'
 CELEBA = 'celeba'
+IMAGENET_CARN = 'imagenet_carn'
 
 
 #eval

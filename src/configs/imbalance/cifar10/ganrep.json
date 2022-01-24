@@ -35,18 +35,18 @@
 
     "optimization": {
       "optimizer": "Adam",
-      "batch_size": 64,
+      "batch_size": 32,
       "accumulation_steps": 1,
-      "d_lr": 2e-5,
+      "d_lr": 2e-4,
       "g_lr": 2e-4,
       "momentum": "N/A",
       "nesterov": "N/A",
       "alpha": "N/A",
-      "beta1": 0.5,
-      "beta2": 0.999,
+      "beta1": 0,
+      "beta2": 0.9,
       "g_steps_per_iter": 1,
       "d_steps_per_iter": 5,
-      "total_step": 1000
+      "total_step": 100000
     },
 
     "loss_function": {

@@ -1,9 +1,9 @@
 {
   "data_processing":{ 
-    "dataset_name": "cifar100",
-    "data_path": "./data/cifar100",
+    "dataset_name": "cifar10",
+    "data_path": "./data/cifar10",
     "img_size": 32,
-    "num_classes": 100,
+    "num_classes": 10,
     "img_channel": 3,
     "batch_size4prcsing": 256,
     "chunk_size": 500,
@@ -38,15 +38,15 @@
       "batch_size": 64,
       "accumulation_steps": 1,
       "d_lr": 2e-4,
-      "g_lr": 2e-3,
+      "g_lr": 2e-4,
       "momentum": "N/A",
       "nesterov": "N/A",
       "alpha": "N/A",
-      "beta1": 0.5,
-      "beta2": 0.999,
+      "beta1": 0,
+      "beta2": 0.9,
       "g_steps_per_iter": 1,
       "d_steps_per_iter": 5,
-      "total_step": 1000
+      "total_step": 100000
     },
 
     "loss_function": {
