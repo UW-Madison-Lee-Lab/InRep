@@ -1,7 +1,7 @@
 #!/bin/bash
 
 resume=$1
-data=imagenet_carn
+data=cifar10
 epochs=100
 
 python main.py \

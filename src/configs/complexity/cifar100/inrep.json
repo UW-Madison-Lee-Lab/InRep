@@ -2,7 +2,7 @@
   "data_processing":{ 
     "dataset_name": "cifar100",
     "img_size": 32,
-    "num_classes": 10,
+    "num_classes": 100,
     "img_channel": 3
   },
   "train": {

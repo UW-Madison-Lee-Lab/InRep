@@ -5,17 +5,18 @@
 
 - src: 
   - configs: configurations 
+  - datasets: dataset preparation scripts
   - evals: evaluation scripts
-  - metrics: metrics using in the paper
-  - models: all GAN conditoining models and networks 
+  - metrics: evaluation metrics using in the paper
+  - models: all GAN conditioning models and networks 
   - scripts: bash scripts to run
-  - utils: helper functions
+  - utils: utility functions
   - constant.py: define all configuration names
   - train.py: training function
   - main.py: main entry point
 - results:
   - checkpoints: saved models
-  - evals: log file of results
+  - evals: evaluation logs
 
 ### Running script
 ```
@@ -33,13 +34,13 @@ python main.py --data_type  cifar10 --gan_type inrep --exp_mode complexity --lab
 ```
 ### Inference
 
-For testing, we use the main script with testing metrics (fid, intrafid, cas, pr). For instance, to test FID of  InRep+ on CIFAR10 with 10% supervision, we use the following script:
+For testing, we use the main script with testing metrics (fid, intrafid, cas, pr). For instance, to test FID of InRep+ on CIFAR10 with 10% supervision, we use the following script:
 
 ```
 python main.py --data_type  cifar10   --gan_type inrep --exp_mode complexity --label_ratio 0.1 -t fid
 ```
 
-Our pretrained models can be found [here](https://drive.google.com/drive/u/1/folders/1_89ycRW3N6h7RdYAEQ8_gOjrHbvh6pFh)
+Some (small-size) pretrained models can be found in the ```results``` folder.
 ### Credits
 
 We reuse the repositories from several sources: [StudioGAN](https://github.com/POSTECH-CVLab/PyTorch-StudioGAN), [rGAN](https://github.com/takuhirok/rGAN), [pytorch-fid](https://github.com/mseitzer/pytorch-fid)

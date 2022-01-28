@@ -88,6 +88,5 @@ class LoaderProvider(object):
                 inds = np.argwhere(np.asarray(dataset.targets) == self.opt.gan_class)
                 inds = inds.reshape(len(inds))
                 dataset = Subset(dataset, inds)
-        print("Length: ", len(dataset))
         dataloader = DataLoader(dataset, batch_size=self.opt.batch_size, shuffle=True, drop_last=True, num_workers=4)
         return dataloader

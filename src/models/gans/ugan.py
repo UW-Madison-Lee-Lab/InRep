@@ -75,15 +75,7 @@ class UGAN(BaseModel):
         self.netG.eval()
         with torch.no_grad():
             noises = Helper.make_z_normal_(data_size, self.z_dim).to(self.device)
-            if self.decoder == constant.SCGAN:
-                labels = torch.zeros(data_size).long().to(self.device)
-                fake_images = self.netG(noises, )
-            elif self.decoder == constant.BIGGAN:
-                # labels = torch.randint(0, 1000, (data_size,)).long().to(self.device)
-                labels = torch.ones(data_size).long().to(self.device) * self.opt.gan_class
-                fake_images = self.netG(noises, labels)
-            else:
-                fake_images = self.netG(noises)
+            fake_images = self.netG(noises)
         return fake_images
     
     def train_iter(self):

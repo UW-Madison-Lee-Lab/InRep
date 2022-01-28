@@ -70,12 +70,6 @@ def define_G(cfgs):
         from .networks.stylegan import Generator
         net = Generator(256, 512, 8, channel_multiplier=2)
         return net
-    elif cfgs.data_type.startswith('imagenet'):
-        from .networks.big_resnet_repgan import Generator
-        net = Generator(cfgs.z_dim, cfgs.img_size, cfgs.g_conv_dim, cfgs.g_spectral_norm, cfgs.attention, cfgs.attention_after_nth_gen_block, cfgs.activation_fn, cfgs.g_init, cfgs.G_depth, False)
-        return net
-
-    
 
     if cfgs.gan_type == constant.CONTRAGAN:
         from .networks.big_resnet import Generator
@@ -100,12 +94,6 @@ def define_D(cfgs):
     if cfgs.decoder_type == constant.STYLEGAN:
         from .networks.stylegan import Discriminator
         net = Discriminator(256, 2, num_classes=cfgs.num_classes)
-        return net
-    elif cfgs.data_type.startswith('imagenet'):
-        from .networks.big_resnet_repgan import Discriminator
-        net = Discriminator(cfgs.img_size, cfgs.d_conv_dim, cfgs.d_spectral_norm, cfgs.attention, cfgs.attention_after_nth_dis_block,
-                            cfgs.activation_fn, cfgs.nonlinear_embed,
-                            cfgs.normalize_embed, cfgs.d_init, cfgs.D_depth, False)
         return net
 
     if cfgs.gan_type == constant.CONTRAGAN:

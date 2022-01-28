@@ -1,9 +1,9 @@
 {
   "data_processing":{ 
     "dataset_name": "cifar100",
-    "data_path": "./data/cifar10",
+    "data_path": "./data/cifar100",
     "img_size": 32,
-    "num_classes": 10,
+    "num_classes": 100,
     "img_channel": 3,
     "batch_size4prcsing": 256,
     "chunk_size": 500,

@@ -52,29 +52,18 @@ preprocess_transform = get_preprocess_transform()
 class Classifiers(object):
     def __init__(self, opt, cas=True):
         self.opt = opt
-        if cas:
-            if self.opt.data_type in [constant.MNIST, constant.FASHION]:
-                self.net = Mnistnet(self.opt.num_classes)
-            elif self.opt.data_type == constant.IMAGENET:
-                self.net = models.resnet152(pretrained=True).to(opt.device)
-            elif self.opt.data_type == constant.CIFAR10:
-                # self.net = ResNet18(self.opt.img_size, self.opt.img_channel, self.opt.num_classes)
-                self.net = ResNet18(False, False, opt.device)
-            else: # CIFAR100
-                self.net = Lenet_32(n_channels=3, n_classes=100).to(opt.device)
-                # self.net = ResNet18(False, False, opt.device, num_classes=100)
-            self.checkpoint_dir = os.path.join(self.opt.checkpoint_dir, 'cas') 
-            Helper.try_make_dir(self.checkpoint_dir)
-        else: # gan-test
-            netname = {
-                'cifar100': "cifar100_resnet56",
-                'cifar10' : "cifar10_resnet32"
-            }[opt.data_type]
-            self.net = torch.hub.load("chenyaofo/pytorch-cifar-models", netname, pretrained=True)
+        if self.opt.data_type in [constant.MNIST, constant.FASHION]:
+            self.net = Mnistnet(self.opt.num_classes)
+        elif self.opt.data_type == constant.CIFAR10:
+            self.net = ResNet18(False, False, opt.device)
+        else: # CIFAR100
+            self.net = Lenet_32(n_channels=3, n_classes=100).to(opt.device)
+        self.checkpoint_dir = os.path.join(self.opt.checkpoint_dir, 'cas') 
+        Helper.try_make_dir(self.checkpoint_dir)
         self.net = self.net.to(self.opt.device)
 
     def load_network(self, pretrained=False):
-        if self.opt.data_type in [constant.IMAGENET, constant.CIFAR100]:
+        if self.opt.data_type in [constant.CIFAR100]:
             print('Load from Torch Zoo')
             return True
         name = 'resnet18.pt'if pretrained else 'best_net.pth'
@@ -89,7 +78,6 @@ class Classifiers(object):
         return False
 
     def train(self, trainloader, valloader):
-        # optimizer = optim.Adam(self.net.parameters(), lr=self.opt.c_lr, betas=(0, 0.999))
         optimizer = optim.SGD(self.net.parameters(), lr=0.1, weight_decay=1e-4)
         criterionCE = nn.CrossEntropyLoss()
         elapsed_time, best_accuracy, total_steps = 0, -np.inf, len(trainloader)
@@ -114,12 +102,7 @@ class Classifiers(object):
                 targets = Variable(targets).long().to(self.opt.device)
                 logits = self.net(inputs)
 
-                alpha = 0.01
-                # l1_norm = sum(p.abs().sum() for p in model.parameters())
-                # l2_norm = 0
-                # for p in self.net.parameters():
-                #     l2_norm += torch.norm(p)
-                loss = criterionCE(logits, targets) #+ alpha * l2_norm
+                loss = criterionCE(logits, targets)
 
                 precs = Helper.accuracy(logits, targets, topk=(1,))
                 prec1 = precs[0]
@@ -152,8 +135,6 @@ class Classifiers(object):
     def normalize(self, x):
         #  = ([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
         x = x * 0.5 + 0.5 # [0, 1]
-        if self.opt.data_type == constant.IMAGENET:
-            x = F.interpolate(x, size=224)
         mean = constant.means[self.opt.data_type]
         std = constant.stds[self.opt.data_type]
         for c in range(3):

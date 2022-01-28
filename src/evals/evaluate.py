@@ -197,21 +197,18 @@ class Tester():
             data, labels = dataset['data'], dataset['labels']
         else:
             gan = load_gan(self.opt, epoch)
-            if self.opt.gan_type in [constant.SRGAN, constant.INREP] and self.opt.gan_class >= 0:
+            if self.opt.gan_type in [constant.INREP] and self.opt.gan_class >= 0:
                 data, labels = mix_sample_class(gan, self.num_samples, self.opt.gan_class)
             elif self.opt.gan_type == constant.UGAN and self.opt.gan_class >= 0:
-                if self.opt.decoder_type == constant.BIGGAN:
-                    data, labels = mix_sample(gan, self.num_samples, 1)
-                else:
-                    netC = Classifiers(self.opt, self.opt.real_classifier_dir)
-                    valid = netC.load_network(pretrained=True)
-                    netC.net.eval()
-                    if not valid:
-                        raise NotImplementedError
-                    elif dataloader is not None:
-                        l, p = netC.evaluate(dataloader)
-                        print('Accuracy of pretrained model: {:.4f}'.format(p))
-                    data, labels = mix_sample_class_ugan(gan, netC, self.num_samples, self.opt.gan_class)
+                netC = Classifiers(self.opt, self.opt.real_classifier_dir)
+                valid = netC.load_network(pretrained=True)
+                netC.net.eval()
+                if not valid:
+                    raise NotImplementedError
+                elif dataloader is not None:
+                    l, p = netC.evaluate(dataloader)
+                    print('Accuracy of pretrained model: {:.4f}'.format(p))
+                data, labels = mix_sample_class_ugan(gan, netC, self.num_samples, self.opt.gan_class)
             else:
                 data, labels = mix_sample(gan, self.num_samples, self.opt.num_classes)
             np.save(fake_data_path, {'data': data, 'labels': labels})

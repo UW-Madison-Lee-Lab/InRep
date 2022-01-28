@@ -34,10 +34,7 @@ def load_pretrained_net(net, load_path, device):
 def get_gan(opt):
     loss_names = ['G', 'D']
     if opt.gan_type == constant.UGAN:
-        if opt.decoder_type in [constant.BIGGAN, constant.GAN, constant.SCGAN, constant.STYLEGAN]: 
-            from models.gans.ugan import UGAN as GAN
-        else:
-            from models.gans.decoder import Decoder as GAN
+        from models.gans.ugan import UGAN as GAN
     elif opt.gan_type == constant.INREP:
         from models.gans.inrep import InRep as GAN
     elif opt.gan_type == constant.INREP_AB:
@@ -50,12 +47,10 @@ def get_gan(opt):
         from models.gans.projgan import ProjGAN as GAN
     elif opt.gan_type == constant.CONTRAGAN:
         from models.gans.contragan import ContraGAN as GAN
-    elif opt.gan_type == constant.TRANSFERGAN:
-        from models.gans.transfergan import TransferGAN as GAN
     elif opt.gan_type == constant.MINEGAN:
         from models.gans.minegan import MineGAN as GAN
     else:
-        print('Van GAN is not implemented yet')
+        print('Not implemented yet')
     # model
     gan = GAN(opt)
     return gan, loss_names

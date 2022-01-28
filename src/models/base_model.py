@@ -159,15 +159,6 @@ class BaseModel(ABC):
 
 		for name in self.model_names:
 			if isinstance(name, str):
-				# if epoch > 0 and epoch < 100:
-				# 	load_filename = '%s_net_%s.pth' % (epoch, name)
-				# else:
-				# if self.opt.data_type == constant.IMAGENET and name == 'G':
-				# 	if self.opt.decoder_type == constant.GAN:
-				# 		load_filename = 'uncondgan_i_model.pt'
-				# 	else:
-				# 		load_filename = 'selfcondgan_i_model.pt'
-				# else:
 				load_filename = 'net_%s.pth' % (name)
 				load_path = os.path.join(self.save_dir, load_filename)
 				if not os.path.isfile(load_path):
